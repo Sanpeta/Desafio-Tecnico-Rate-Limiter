@@ -16,9 +16,10 @@ type Config struct {
 }
 
 // LoadConfig carrega as configurações do arquivo .env e variáveis de ambiente.
-func LoadConfig() (config Config, err error) {
+func LoadConfig(path string) (config Config, err error) {
 	// Configurar o Viper
-	viper.SetConfigFile(".env")
+	viper.AddConfigPath(path)
+	viper.SetConfigName("app")
 	viper.SetConfigType("env")
 	viper.AutomaticEnv()
 
