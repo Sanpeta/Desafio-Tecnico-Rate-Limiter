@@ -8,7 +8,7 @@ import (
 
 func main() {
 	// Carregar configurações
-	_, err := config.LoadConfig("../")
+	_, err := config.LoadConfig(".")
 	if err != nil {
 		log.Fatalf("Error loading configuration: %v", err)
 	}
