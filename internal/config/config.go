@@ -9,10 +9,11 @@ import (
 
 // Config é para armazena as configurações do rate limiter.
 type Config struct {
-	LimitBy              string        `mapstructure:"LIMIT_BY"`
-	MaxRequestsPerSecond int           `mapstructure:"MAX_REQUESTS_PER_SECOND"`
-	BlockDuration        time.Duration `mapstructure:"BLOCK_DURATION_SECONDS"`
-	RedisAddr            string        `mapstructure:"REDIS_ADDR"`
+	LimitBy                   string        `mapstructure:"LIMIT_BY"`
+	MaxRequestsPerSecondIP    int           `mapstructure:"MAX_REQUESTS_PER_SECOND_IP"`
+	MaxRequestsPerSecondToken int           `mapstructure:"MAX_REQUESTS_PER_SECOND_TOKEN"`
+	BlockDuration             time.Duration `mapstructure:"BLOCK_DURATION_SECONDS"`
+	RedisAddr                 string        `mapstructure:"REDIS_ADDR"`
 }
 
 // LoadConfig carrega as configurações do arquivo .env e variáveis de ambiente.
