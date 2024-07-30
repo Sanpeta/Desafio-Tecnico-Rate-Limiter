@@ -19,21 +19,21 @@ func NewRedisStrategy(client *redis.Client) *RedisStrategy {
 	return &RedisStrategy{client: client}
 }
 
-// Allow erifica se uma requisição é permitida e atualiza o contador no Redis.
-func (redis *RedisStrategy) Allow(ctx context.Context, ip string, maxRequests int, expire time.Duration) (bool, time.Duration) {
-	// Gerar a chave no Redis com base no IP e na janela de tempo (por exemplo, "ratelimit:192.168.1.1:2024072920")
-	redisKey := fmt.Sprintf("ratelimit:%s:%d", ip, time.Now().Unix()/int64(expire.Seconds()))
+// Allow verifica se uma requisição é permitida e atualiza o contador no Redis.
+func (redis *RedisStrategy) Allow(ctx context.Context, key string, maxRequests int, expire time.Duration) (bool, time.Duration) {
+	// Gerar a chave no Redis com base no IP ou Token (por exemplo, "ratelimit:192.168.1.1" ou "ratelimit:abc123")
+	timestamp := time.Now().Unix()
+	redisKey := fmt.Sprintf("ratelimit:%s:%d", key, timestamp)
 
-	// Log antes do incremento
 	log.Printf("Before INCR: key=%s, expire=%s", redisKey, expire)
 
 	// Incrementar o contador no Redis (com expiração)
 	count, err := redis.client.Incr(ctx, redisKey).Result()
 	if err != nil {
+		log.Printf("Error incrementing key: %v", err)
 		return false, 0
 	}
 
-	// Log após o incremento
 	log.Printf("After INCR: key=%s, count=%d, expire=%s", redisKey, count, expire)
 
 	// Definir a expiração da chave se for a primeira requisição na janela de tempo
@@ -46,6 +46,7 @@ func (redis *RedisStrategy) Allow(ctx context.Context, ip string, maxRequests in
 		// Obter o tempo restante para a expiração da chave
 		ttl, err := redis.client.TTL(ctx, redisKey).Result()
 		if err != nil {
+			log.Printf("Error getting TTL: %v", err)
 			return false, 0
 		}
 		return false, ttl
