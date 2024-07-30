@@ -21,37 +21,52 @@ func NewRedisStrategy(client *redis.Client) *RedisStrategy {
 
 // Allow verifica se uma requisição é permitida e atualiza o contador no Redis.
 func (redis *RedisStrategy) Allow(ctx context.Context, key string, maxRequests int, expire time.Duration) (bool, time.Duration) {
-	// Gerar a chave no Redis com base no IP ou Token (por exemplo, "ratelimit:192.168.1.1" ou "ratelimit:abc123")
-	timestamp := time.Now().Unix()
-	redisKey := fmt.Sprintf("ratelimit:%s:%d", key, timestamp)
+	// Chave para contagem de requisições
+	redisKey := fmt.Sprintf("ratelimit:%s", key)
+	// Chave para bloqueio
+	blockedKey := fmt.Sprintf("ratelimit:%s:block", key)
 
-	log.Printf("Before INCR: key=%s, expire=%s", redisKey, expire)
-
-	// Incrementar o contador no Redis (com expiração)
-	count, err := redis.client.Incr(ctx, redisKey).Result()
+	// Verificar se o IP/token está bloqueado
+	blocked, err := redis.client.Exists(ctx, blockedKey).Result()
 	if err != nil {
-		log.Printf("Error incrementing key: %v", err)
+		log.Println("Redis error on EXISTS: ", err)
 		return false, 0
 	}
-
-	log.Printf("After INCR: key=%s, count=%d, expire=%s", redisKey, count, expire)
-
-	// Definir a expiração da chave se for a primeira requisição na janela de tempo
-	if count == 1 {
-		redis.client.Expire(ctx, redisKey, expire)
-	}
-
-	// Verificar se o limite foi excedido
-	if int(count) > maxRequests {
-		// Obter o tempo restante para a expiração da chave
-		ttl, err := redis.client.TTL(ctx, redisKey).Result()
+	if blocked == 1 {
+		ttl, err := redis.client.TTL(ctx, blockedKey).Result()
 		if err != nil {
-			log.Printf("Error getting TTL: %v", err)
+			log.Println("Redis error on TTL: ", err)
 			return false, 0
 		}
 		return false, ttl
 	}
 
-	// Retornar true (permitido) e 0 (sem tempo de bloqueio)
+	// Incrementar o contador no Redis (com expiração)
+	count, err := redis.client.Incr(ctx, redisKey).Result()
+	if err != nil {
+		log.Println("Error incrementing key: ", err)
+		return false, 0
+	}
+
+	// Definido a expiração da chave se for a primeira requisição na janela de tempo
+	if count == 1 {
+		err = redis.client.Expire(ctx, redisKey, time.Second).Err()
+		if err != nil {
+			log.Println("Error setting expiration: ", err)
+			return false, 0
+		}
+	}
+
+	// Verifica se o limite foi excedido
+	if int(count) > maxRequests {
+		_, err := redis.client.Set(ctx, blockedKey, 1, expire).Result()
+		// Bloquear por 5 minutos se o limite for excedido
+		if err != nil {
+			log.Println("Redis error on SET: ", err)
+		}
+		return false, expire
+	}
+
+	// Permitido
 	return true, 0
 }
