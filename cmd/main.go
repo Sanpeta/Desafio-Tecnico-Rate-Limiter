@@ -9,6 +9,7 @@ import (
 	"github.com/Sanpeta/rate-limiter-pos-go-expert/internal/config"
 	"github.com/Sanpeta/rate-limiter-pos-go-expert/internal/limiter"
 	"github.com/Sanpeta/rate-limiter-pos-go-expert/internal/limiter/strategy"
+	"github.com/Sanpeta/rate-limiter-pos-go-expert/internal/middleware"
 	"github.com/redis/go-redis/v9"
 )
 
@@ -52,6 +53,9 @@ func main() {
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	})
+
+	// Aplicar o middleware ao roteador
+	handlerWithMiddleware := middleware.RateLimitMiddleware(limiterToUse)(mux)
 
 	// Iniciar o servidor
 	log.Fatal(http.ListenAndServe(":8080", handlerWithMiddleware))
