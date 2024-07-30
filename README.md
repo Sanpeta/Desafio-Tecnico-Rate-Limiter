@@ -51,8 +51,19 @@ rate-limiter/
    ```bash
    git clone https://github.com/Sanpeta/rate-limiter-pos-go-expert.git
    ```
+   
+2. **Alterar o example.env para app.env:**
+   
+   - Alterar o nome do arquivo e alterar as variáveis
+   ```bash
+      LIMIT_BY=ip OU token
+      MAX_REQUESTS_PER_SECOND_IP=5
+      MAX_REQUESTS_PER_SECOND_TOKEN=10
+      BLOCK_DURATION_SECONDS=300s
+      REDIS_ADDR=redis:6379
+      ```
 
-2. **Inicie e Execute:**
+3. **Inicie e Execute:**
 
    ```bash
    docker-compose up
